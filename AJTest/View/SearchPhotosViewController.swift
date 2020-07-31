@@ -43,9 +43,9 @@ class SearchPhotosViewController: UIViewController {
             })
             .disposed(by: bag)
         
-        viewModel.goToPhotoList
+        viewModel.toPhotoList
             .emit(onNext: {
-                print("Go to PhotoList")
+                print("To PhotoList")
             })
             .disposed(by: bag)
     }
