@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct SearchPhoto {
+struct SearchPhotos {
     let method = "flickr.photos.search"
     let apiKey: String
     let text: String

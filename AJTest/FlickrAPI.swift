@@ -72,7 +72,7 @@ class FlickrAPI {
     }
     
     static func searchPhotos(by text: String, numberOfPhotoPerPage: Int, page: Int, completion: @escaping (_ result: Result<Photos, FlickrAPIError>) -> Void) {
-        let queryItems = SearchPhoto(apiKey: apiKey, text: text, perPage: numberOfPhotoPerPage, page: page).getQueryItems()
+        let queryItems = SearchPhotos(apiKey: apiKey, text: text, perPage: numberOfPhotoPerPage, page: page).getQueryItems()
         sendRequest(path: "services/rest/", queryItems: queryItems) { (result: Result<FlickrResponse, FlickrAPIError>) in
             switch result {
             case .success(let flickrResponse):
