@@ -60,8 +60,8 @@ class FlickrAPI {
             .observeOn(MainScheduler.instance)
             .subscribe(onNext: { (data) in
                 do {
-                    let flickrResponse = try JSONDecoder().decode(T.self, from: data)
-                    completion(.success(flickrResponse))
+                    let decodedData = try JSONDecoder().decode(T.self, from: data)
+                    completion(.success(decodedData))
                 } catch {
                     completion(.failure(.dataFormat))
                 }
