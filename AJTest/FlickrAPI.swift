@@ -12,7 +12,6 @@ import RxSwift
 
 enum FlickrAPIError: Error, LocalizedError {
     case url
-    case request(String)
     case backend(String)
     case dataFormat
     case unknown
@@ -21,8 +20,6 @@ enum FlickrAPIError: Error, LocalizedError {
         switch self {
         case .url:
             return "URL錯誤"
-        case .request(let errorMessage):
-            return errorMessage
         case .backend(let errorMessage):
             return errorMessage
         case .dataFormat:
@@ -38,61 +35,51 @@ class FlickrAPI {
     static private let url = URL(string: "https://www.flickr.com/")
     static private let apiKey = "cfc6f20e925ba47a3a366b52a550d474"
     
-    static private let bag = DisposeBag()
-    
-    static func sendRequest<T: Codable>(path: String, queryItems: [URLQueryItem], completion: @escaping (_ result: Result<T, FlickrAPIError>) -> Void) {
+    static func sendRequest<T: Codable>(path: String, queryItems: [URLQueryItem]) -> Single<T> {
         guard let urlWithPath = url?.appendingPathComponent(path) else {
-            completion(.failure(.url))
-            return
+            return .error(FlickrAPIError.url)
         }
         
         var urlComponents = URLComponents(url: urlWithPath, resolvingAgainstBaseURL: true)
         urlComponents?.queryItems = queryItems
         
         guard let fullURL = urlComponents?.url else {
-            completion(.failure(.url))
-            return
+            return .error(FlickrAPIError.url)
         }
 
         let request = URLRequest(url: fullURL)
         
-        URLSession.shared.rx.data(request: request)
+        return URLSession.shared.rx.data(request: request)
             .observeOn(MainScheduler.instance)
-            .subscribe(onNext: { (data) in
+            .flatMap { (data) -> Single<T> in
                 do {
-                    let decodedData = try JSONDecoder().decode(T.self, from: data)
-                    completion(.success(decodedData))
+                    let dataModel = try JSONDecoder().decode(T.self, from: data)
+                    return .just(dataModel)
                 } catch {
-                    completion(.failure(.dataFormat))
+                    return .error(FlickrAPIError.dataFormat)
                 }
-            }, onError: { (error) in
-                completion(.failure(.request(error.localizedDescription)))
-            })
-            .disposed(by: bag)
+            }
+            .asSingle()
     }
     
-    static func searchPhotos(by text: String, numberOfPhotoPerPage: Int, page: Int, completion: @escaping (_ result: Result<Photos, FlickrAPIError>) -> Void) {
+    static func searchPhotos(by text: String, numberOfPhotoPerPage: Int, page: Int) -> Single<Photos> {
         let queryItems = SearchPhotos(apiKey: apiKey, text: text, perPage: numberOfPhotoPerPage, page: page).getQueryItems()
-        sendRequest(path: "services/rest/", queryItems: queryItems) { (result: Result<FlickrResponse, FlickrAPIError>) in
-            switch result {
-            case .success(let flickrResponse):
+        return sendRequest(path: "services/rest/", queryItems: queryItems)
+            .flatMap { (flickrResponse: FlickrResponse) -> Single<Photos> in
                 if flickrResponse.stat == "ok" {
                     if let photos = flickrResponse.photos {
-                        completion(.success(photos))
+                        return .just(photos)
                     } else {
-                        completion(.failure(.unknown))
+                        return .error(FlickrAPIError.unknown)
                     }
                 } else {
                     if let message = flickrResponse.message {
-                        completion(.failure(.backend(message)))
+                        return .error(FlickrAPIError.backend(message))
                     } else {
-                        completion(.failure(.unknown))
+                        return .error(FlickrAPIError.unknown)
                     }
                 }
-            case .failure(let error):
-                completion(.failure(error))
             }
-        }
     }
     
 }
