@@ -37,14 +37,15 @@ class SearchPhotosViewController: UIViewController {
             })
             .disposed(by: bag)
         
-        viewModel.presentAlert
+        viewModel.presentNumberInvalidAlert
             .emit(onNext: { [weak self] (message) in
                 self?.presentAlert(message: message)
             })
             .disposed(by: bag)
         
         viewModel.toPhotoList
-            .emit(onNext: {
+            .emit(onNext: { [weak self] in
+                self?.view.endEditing(true)
                 print("To PhotoList")
             })
             .disposed(by: bag)

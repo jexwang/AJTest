@@ -13,20 +13,18 @@ import RxSwift
 class SearchPhotosViewModel {
     
     let searchButtonEnabled: Driver<Bool>
-    let presentAlert: Signal<String>
+    let presentNumberInvalidAlert: Signal<String>
     let toPhotoList: Signal<Void>
     
     init(searchText: Observable<String>, numberOfPhotosPerPage: Observable<String>, searchButtonTapped: Signal<Void>) {
         searchButtonEnabled = Observable.combineLatest(searchText, numberOfPhotosPerPage, resultSelector: { $0.count > 0 && $1.count > 0 })
             .asDriver(onErrorJustReturn: false)
         
-        presentAlert = searchButtonTapped.asObservable().withLatestFrom(numberOfPhotosPerPage)
+        presentNumberInvalidAlert = searchButtonTapped.withLatestFrom(numberOfPhotosPerPage.asDriver(onErrorJustReturn: ""))
             .compactMap { Int($0) == nil ? "請輸入正確數量": nil }
-            .asSignal(onErrorSignalWith: .never())
-            
-        toPhotoList = searchButtonTapped.asObservable().withLatestFrom(numberOfPhotosPerPage)
+        
+        toPhotoList = searchButtonTapped.withLatestFrom(numberOfPhotosPerPage.asDriver(onErrorJustReturn: ""))
             .compactMap { Int($0) != nil ? () : nil }
-            .asSignal(onErrorSignalWith: .never())
     }
     
 }
