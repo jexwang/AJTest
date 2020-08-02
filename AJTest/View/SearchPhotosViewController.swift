@@ -37,7 +37,7 @@ class SearchPhotosViewController: UIViewController {
             })
             .disposed(by: bag)
         
-        viewModel.presentNumberInvalidAlert
+        viewModel.presentAlert
             .emit(onNext: { [weak self] (message) in
                 self?.presentAlert(message: message)
             })
