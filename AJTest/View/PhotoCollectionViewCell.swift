@@ -19,6 +19,7 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         bag = DisposeBag()
+        photoImageView.image = nil
     }
     
     func configureCell(with photo: Photo) {

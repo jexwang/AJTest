@@ -25,8 +25,8 @@ class SearchPhotosViewController: UIViewController {
         // Do any additional setup after loading the view.
         
         viewModel = SearchPhotosViewModel(
-            searchText: searchTextField.rx.text.orEmpty.asObservable(),
-            numberOfPhotosPerPage: numberOfPhotosPerPageTextField.rx.text.orEmpty.asObservable(),
+            searchText: searchTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
+            numberOfPhotosPerPage: numberOfPhotosPerPageTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
             searchButtonTapped: searchButton.rx.tap.asSignal()
         )
         
@@ -43,10 +43,15 @@ class SearchPhotosViewController: UIViewController {
             })
             .disposed(by: bag)
         
-        viewModel.toPhotoList
-            .emit(onNext: { [weak self] in
+        viewModel.performSearch
+            .emit(onNext: { [weak self] (searchText, numberOfPhotosPerPage) in
                 self?.view.endEditing(true)
-                self?.performSegue(withIdentifier: "ToPhotoList", sender: nil)
+                
+                if let photoListVC = self?.storyboard?.instantiateViewController(withIdentifier: "PhotoListViewController") as? PhotoListViewController {
+                    photoListVC.searchText = searchText
+                    photoListVC.numberOfPhotosPerPage = numberOfPhotosPerPage
+                    self?.navigationController?.pushViewController(photoListVC, animated: true)
+                }
             })
             .disposed(by: bag)
     }
@@ -54,15 +59,6 @@ class SearchPhotosViewController: UIViewController {
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesEnded(touches, with: event)
         view.endEditing(true)
-    }
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        super.prepare(for: segue, sender: sender)
-        
-        if segue.identifier == "ToPhotoList", let photoListVC = segue.destination as? PhotoListViewController {
-            photoListVC.searchText = searchTextField.text
-            photoListVC.numberOfPhotosPerPage = Int(numberOfPhotosPerPageTextField.text!)
-        }
     }
     
 }

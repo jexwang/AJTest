@@ -14,17 +14,25 @@ class SearchPhotosViewModel {
     
     let searchButtonEnabled: Driver<Bool>
     let presentAlert: Signal<String>
-    let toPhotoList: Signal<Void>
+    let performSearch: Signal<(searchText: String, numberOfPhotosPerPage: Int)>
     
-    init(searchText: Observable<String>, numberOfPhotosPerPage: Observable<String>, searchButtonTapped: Signal<Void>) {
-        searchButtonEnabled = Observable.combineLatest(searchText, numberOfPhotosPerPage, resultSelector: { $0.count > 0 && $1.count > 0 })
-            .asDriver(onErrorJustReturn: false)
+    init(searchText: Driver<String>, numberOfPhotosPerPage: Driver<String>, searchButtonTapped: Signal<Void>) {
+        let searchTextAndNumberOfPhotosPerPage = Driver.combineLatest(searchText, numberOfPhotosPerPage)
+        
+        searchButtonEnabled = searchTextAndNumberOfPhotosPerPage
+            .map { $0.count > 0 && $1.count > 0 }
         
         presentAlert = searchButtonTapped.withLatestFrom(numberOfPhotosPerPage.asDriver(onErrorJustReturn: ""))
             .compactMap { $0.isUnsignedInteger ? nil : "請輸入正確數量" }
         
-        toPhotoList = searchButtonTapped.withLatestFrom(numberOfPhotosPerPage.asDriver(onErrorJustReturn: ""))
-            .compactMap { $0.isUnsignedInteger ? () : nil }
+        performSearch = searchButtonTapped.withLatestFrom(searchTextAndNumberOfPhotosPerPage)
+            .compactMap { (searchText, numberOfPhotosPerPage) -> (String, Int)? in
+                if let numberOfPhotosPerPage = Int(numberOfPhotosPerPage) {
+                    return (searchText, numberOfPhotosPerPage)
+                } else {
+                    return nil
+                }
+            }
     }
     
 }

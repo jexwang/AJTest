@@ -62,7 +62,7 @@
         <!--搜尋結果-->
         <scene sceneID="6Iv-9i-UIT">
             <objects>
-                <viewController id="L6A-Uj-IVp" customClass="PhotoListViewController" customModule="AJTest" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="PhotoListViewController" id="L6A-Uj-IVp" customClass="PhotoListViewController" customModule="AJTest" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="5a0-dU-LhP">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
