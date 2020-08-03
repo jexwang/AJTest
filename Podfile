@@ -8,7 +8,8 @@ target 'AJTest' do
   # Pods for AJTest
   pod 'RxSwift', '~> 5.0'
   pod 'RxCocoa', '~> 5.0'
-  pod 'RealmSwift'
+  pod 'RxDataSources', '~> 4.0'
+  pod 'RxRealm'
 
   target 'AJTestTests' do
     inherit! :search_paths

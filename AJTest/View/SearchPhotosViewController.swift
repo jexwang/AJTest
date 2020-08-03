@@ -17,7 +17,7 @@ class SearchPhotosViewController: UIViewController {
     @IBOutlet weak var searchButton: UIButton!
     
     private var viewModel: SearchPhotosViewModel!
-    private let bag = DisposeBag()
+    private let bag: DisposeBag = DisposeBag()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,7 +46,7 @@ class SearchPhotosViewController: UIViewController {
         viewModel.toPhotoList
             .emit(onNext: { [weak self] in
                 self?.view.endEditing(true)
-                print("To PhotoList")
+                self?.performSegue(withIdentifier: "ToPhotoList", sender: nil)
             })
             .disposed(by: bag)
     }
@@ -54,6 +54,15 @@ class SearchPhotosViewController: UIViewController {
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesEnded(touches, with: event)
         view.endEditing(true)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        super.prepare(for: segue, sender: sender)
+        
+        if segue.identifier == "ToPhotoList", let photoListVC = segue.destination as? PhotoListViewController {
+            photoListVC.searchText = searchTextField.text
+            photoListVC.numberOfPhotosPerPage = Int(numberOfPhotosPerPageTextField.text!)
+        }
     }
     
 }

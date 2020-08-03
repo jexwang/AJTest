@@ -32,8 +32,8 @@ enum FlickrAPIError: Error, LocalizedError {
 
 class FlickrAPI {
     
-    static private let url = URL(string: "https://www.flickr.com/")
-    static private let apiKey = "cfc6f20e925ba47a3a366b52a550d474"
+    static private let url: URL? = URL(string: "https://www.flickr.com/")
+    static private let apiKey: String = "cfc6f20e925ba47a3a366b52a550d474"
     
     static func sendRequest<T: Codable>(path: String, queryItems: [URLQueryItem]) -> Single<T> {
         guard let urlWithPath = url?.appendingPathComponent(path) else {
@@ -80,6 +80,20 @@ class FlickrAPI {
                     }
                 }
             }
+    }
+    
+    static func getPhoto(photo: Photo) -> Driver<UIImage?> {
+        let urlString = "https://farm\(photo.farm).staticflickr.com/\(photo.server)/\(photo.id)_\(photo.secret)_m.jpg"
+        guard let url = URL(string: urlString) else {
+            return .just(nil)
+        }
+        
+        let request = URLRequest(url: url)
+        return URLSession.shared.rx.data(request: request)
+            .observeOn(MainScheduler.instance)
+            .retry(3)
+            .map { UIImage(data: $0) }
+            .asDriver(onErrorJustReturn: nil)
     }
     
 }
