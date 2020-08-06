@@ -7,3 +7,9 @@
 //
 
 import Foundation
+import RxCocoa
+import RxSwift
+
+class PhotoListViewModel {
+    
+}

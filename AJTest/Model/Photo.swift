@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import RxDataSources
 
 struct Photos: Codable {
     let page: Int
@@ -16,7 +17,12 @@ struct Photos: Codable {
     let photo: [Photo]
 }
 
-struct Photo: Codable {
+struct Photo: Codable, IdentifiableType, Equatable {
+    typealias Identity = String
+    var identity: String {
+        return id
+    }
+    
     let id: String
     let owner: String
     let secret: String

@@ -25,9 +25,11 @@ class SearchPhotosViewController: UIViewController {
         // Do any additional setup after loading the view.
         
         viewModel = SearchPhotosViewModel(
-            searchText: searchTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
-            numberOfPhotosPerPage: numberOfPhotosPerPageTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
-            searchButtonTapped: searchButton.rx.tap.asSignal()
+            input: (
+                searchText: searchTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
+                numberOfPhotosPerPage: numberOfPhotosPerPageTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
+                searchButtonTapped: searchButton.rx.tap.asSignal()
+            )
         )
         
         viewModel.searchButtonEnabled
@@ -44,14 +46,9 @@ class SearchPhotosViewController: UIViewController {
             .disposed(by: bag)
         
         viewModel.performSearch
-            .emit(onNext: { [weak self] (searchText, numberOfPhotosPerPage) in
-                self?.view.endEditing(true)
-                
-                if let photoListVC = self?.storyboard?.instantiateViewController(withIdentifier: "PhotoListViewController") as? PhotoListViewController {
-                    photoListVC.searchText = searchText
-                    photoListVC.numberOfPhotosPerPage = numberOfPhotosPerPage
-                    self?.navigationController?.pushViewController(photoListVC, animated: true)
-                }
+            .emit(onNext: { [weak self] (params) in
+                PhotoManager.shared.searchPhotos(params: params)
+                self?.performSegue(withIdentifier: "ToPhotoList", sender: nil)
             })
             .disposed(by: bag)
     }

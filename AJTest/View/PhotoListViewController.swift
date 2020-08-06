@@ -17,41 +17,53 @@ class PhotoListViewController: UIViewController {
     
     @IBOutlet weak var photoListCollectionView: UICollectionView!
     
-    var searchText: String!
-    var numberOfPhotosPerPage: Int!
-    
-    private var currentPage: Int = 1
-    
+    private var viewModel: PhotoListViewModel!
     private let bag: DisposeBag = DisposeBag()
+    
+    private let refresher = UIRefreshControl()
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
-        navigationItem.title = "搜尋結果 \(searchText!)"
-        
-        searchPhotos()
-    }
-    
-    private func searchPhotos() {
-        FlickrAPI.searchPhotos(by: searchText, numberOfPhotoPerPage: numberOfPhotosPerPage, page: currentPage)
-            .subscribe(onSuccess: { [weak self] (photos) in
-                self?.photoListCollectionView(load: photos.photo)
-            }) { [weak self] (error) in
-                self?.presentAlert(message: error.localizedDescription)
-            }
+        PhotoManager.shared.searchParameters
+            .subscribe(onNext: { [weak self] (params) in
+                self?.navigationItem.title = "搜尋結果 \(params.text)"
+            })
             .disposed(by: bag)
-    }
-    
-    private func photoListCollectionView(load photos: [Photo]) {
-        let dataSource = RxCollectionViewSectionedReloadDataSource<SectionModel<String, Photo>>(configureCell: { (dataSource, collectionView, indexPath, item) -> UICollectionViewCell in
+        
+        refresher.rx.controlEvent(.valueChanged)
+            .subscribe(onNext: {
+                PhotoManager.shared.searchPhotos()
+            })
+            .disposed(by: bag)
+        photoListCollectionView.addSubview(refresher)
+
+        let dataSource = RxCollectionViewSectionedAnimatedDataSource<AnimatableSectionModel<String, Photo>>(configureCell: { (_, collectionView, indexPath, element) in
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! PhotoCollectionViewCell
-            cell.configureCell(with: item)
+            cell.configureCell(with: element)
             return cell
         })
         
-        Observable.just([SectionModel(model: "", items: photos)])
+        PhotoManager.shared.photos
+            .do(onNext: { [weak self] _ in self?.refresher.endRefreshing() })
+            .map { [AnimatableSectionModel(model: "", items: $0)] }
             .bind(to: photoListCollectionView.rx.items(dataSource: dataSource))
+            .disposed(by: bag)
+        
+        photoListCollectionView.rx.willDisplayCell
+            .map { $1 }
+            .withLatestFrom(PhotoManager.shared.photos) { $0.item == $1.count - 1 }
+            .withLatestFrom(PhotoManager.shared.hasNextPage) { ($0, $1) }
+            .subscribe(onNext: { (willDisplayLastCell, hasNextPage) in
+                if willDisplayLastCell && hasNextPage {
+                    PhotoManager.shared.nextPage()
+                }
+            })
+            .disposed(by: bag)
+        
+        PhotoManager.shared.onError
+            .subscribe(onNext: { [weak self] in self?.presentAlert(message: $0) })
             .disposed(by: bag)
     }
 
@@ -67,13 +79,6 @@ extension PhotoListViewController: UICollectionViewDelegateFlowLayout {
         let usedSpacing: CGFloat = flowLayot.sectionInset.left + flowLayot.sectionInset.right + (flowLayot.minimumInteritemSpacing * CGFloat(PhotoListViewController.numberOfPhotosPerRow - 1))
         let width: CGFloat = (collectionView.frame.width - usedSpacing) / CGFloat(PhotoListViewController.numberOfPhotosPerRow)
         return CGSize(width: width, height: width)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.item == collectionView.numberOfItems(inSection: 0) - 1 {
-//            currentPage += 1
-//            searchPhotos()
-        }
     }
     
 }
