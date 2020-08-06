@@ -11,7 +11,7 @@ import Foundation
 extension String {
     
     var isUnsignedInteger: Bool {
-        return !isEmpty && range(of: "[^0-9]", options: .regularExpression) == nil
+        return range(of: "^[0-9]{1,3}$", options: .regularExpression) != nil
     }
     
 }

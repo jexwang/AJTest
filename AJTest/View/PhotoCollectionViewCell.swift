@@ -23,7 +23,7 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     }
     
     func configureCell(with photo: Photo) {
-        FlickrAPI.getPhoto(photo: photo)
+        FlickrAPI.shared.getPhoto(photo: photo)
             .drive(photoImageView.rx.image)
             .disposed(by: bag)
         titleLabel.text = photo.title

@@ -8,6 +8,8 @@
 
 import Foundation
 
+typealias SearchParameters = (text: String, numberOfPhotosPerPage: Int)
+
 struct SearchPhotos {
     let method = "flickr.photos.search"
     let apiKey: String

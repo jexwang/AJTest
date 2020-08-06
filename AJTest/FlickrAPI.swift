@@ -30,12 +30,25 @@ enum FlickrAPIError: Error, LocalizedError {
     }
 }
 
-class FlickrAPI {
+class FlickrAPI: SearchPhotoAPI {
     
-    static private let url: URL? = URL(string: "https://www.flickr.com/")
-    static private let apiKey: String = "cfc6f20e925ba47a3a366b52a550d474"
+    private(set) static var shared: FlickrAPI = FlickrAPI()
     
-    static func sendRequest<T: Codable>(path: String, queryItems: [URLQueryItem]) -> Single<T> {
+    private let url: URL? = URL(string: "https://www.flickr.com/")
+    private let apiKey: String = "cfc6f20e925ba47a3a366b52a550d474"
+    
+    private let bag: DisposeBag = DisposeBag()
+    private var photosCache: [String: UIImage] = [:]
+    
+    private init() {
+        NotificationCenter.default.rx.notification(UIApplication.didReceiveMemoryWarningNotification)
+            .subscribe(onNext: { [weak self] (_) in
+                self?.photosCache.removeAll()
+            })
+            .disposed(by: bag)
+    }
+    
+    func sendRequest<T: Codable>(path: String, queryItems: [URLQueryItem]) -> Single<T> {
         guard let urlWithPath = url?.appendingPathComponent(path) else {
             return .error(FlickrAPIError.url)
         }
@@ -62,8 +75,8 @@ class FlickrAPI {
             .asSingle()
     }
     
-    static func searchPhotos(by text: String, numberOfPhotoPerPage: Int, page: Int) -> Single<Photos> {
-        let queryItems = SearchPhotos(apiKey: apiKey, text: text, perPage: numberOfPhotoPerPage, page: page).getQueryItems()
+    func searchPhotos(with searchParameters: SearchParameters, page: Int) -> Single<Photos> {
+        let queryItems = SearchPhotos(apiKey: apiKey, text: searchParameters.text, perPage: searchParameters.numberOfPhotosPerPage, page: page).getQueryItems()
         return sendRequest(path: "services/rest/", queryItems: queryItems)
             .flatMap { (flickrResponse: FlickrResponse) -> Single<Photos> in
                 if flickrResponse.stat == "ok" {
@@ -82,18 +95,27 @@ class FlickrAPI {
             }
     }
     
-    static func getPhoto(photo: Photo) -> Driver<UIImage?> {
-        let urlString = "https://farm\(photo.farm).staticflickr.com/\(photo.server)/\(photo.id)_\(photo.secret)_m.jpg"
-        guard let url = URL(string: urlString) else {
-            return .just(nil)
+    func getPhoto(photo: Photo) -> Driver<UIImage?> {
+        if let image = photosCache[photo.id] {
+            return .just(image)
+        } else {
+            let urlString = "https://farm\(photo.farm).staticflickr.com/\(photo.server)/\(photo.id)_\(photo.secret)_m.jpg"
+            guard let url = URL(string: urlString) else {
+                return .just(nil)
+            }
+            
+            let request = URLRequest(url: url)
+            return URLSession.shared.rx.data(request: request)
+                .observeOn(MainScheduler.instance)
+                .retry(3)
+                .map { UIImage(data: $0) }
+                .do(onNext: { [weak self] (image) in
+                    if let image = image {
+                        self?.photosCache.updateValue(image, forKey: photo.id)
+                    }
+                })
+                .asDriver(onErrorJustReturn: nil)
         }
-        
-        let request = URLRequest(url: url)
-        return URLSession.shared.rx.data(request: request)
-            .observeOn(MainScheduler.instance)
-            .retry(3)
-            .map { UIImage(data: $0) }
-            .asDriver(onErrorJustReturn: nil)
     }
     
 }

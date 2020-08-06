@@ -1,5 +1,5 @@
 //
-//  SearchPhotosViewController.swift
+//  SearchInputViewController.swift
 //  AJTest
 //
 //  Created by Jay on 2020/7/31.
@@ -10,13 +10,13 @@ import UIKit
 import RxCocoa
 import RxSwift
 
-class SearchPhotosViewController: UIViewController {
+class SearchInputViewController: UIViewController {
     
     @IBOutlet weak var searchTextField: UITextField!
     @IBOutlet weak var numberOfPhotosPerPageTextField: UITextField!
     @IBOutlet weak var searchButton: UIButton!
     
-    private var viewModel: SearchPhotosViewModel!
+    private var viewModel: SearchInputViewModel!
     private let bag: DisposeBag = DisposeBag()
     
     override func viewDidLoad() {
@@ -24,7 +24,7 @@ class SearchPhotosViewController: UIViewController {
 
         // Do any additional setup after loading the view.
         
-        viewModel = SearchPhotosViewModel(
+        viewModel = SearchInputViewModel(
             input: (
                 searchText: searchTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
                 numberOfPhotosPerPage: numberOfPhotosPerPageTextField.rx.text.orEmpty.asDriver(onErrorJustReturn: ""),
@@ -32,23 +32,22 @@ class SearchPhotosViewController: UIViewController {
             )
         )
         
-        viewModel.searchButtonEnabled
+        viewModel.searchButtonTappable
             .drive(onNext: { [weak self] (isEnabled) in
                 self?.searchButton.isEnabled = isEnabled
                 self?.searchButton.backgroundColor = isEnabled ? .systemBlue : .systemGray2
             })
             .disposed(by: bag)
         
-        viewModel.presentAlert
-            .emit(onNext: { [weak self] (message) in
-                self?.presentAlert(message: message)
+        viewModel.pushSearchResult
+            .emit(onNext: { [weak self] (searchParameters) in
+                self?.pushSearchResultVC(with: searchParameters)
             })
             .disposed(by: bag)
-        
-        viewModel.performSearch
-            .emit(onNext: { [weak self] (params) in
-                PhotoManager.shared.searchPhotos(params: params)
-                self?.performSegue(withIdentifier: "ToPhotoList", sender: nil)
+            
+        viewModel.onError
+            .subscribe(onNext: { [weak self] (message) in
+                self?.presentAlert(message: message)
             })
             .disposed(by: bag)
     }
@@ -56,6 +55,15 @@ class SearchPhotosViewController: UIViewController {
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesEnded(touches, with: event)
         view.endEditing(true)
+    }
+    
+    private func pushSearchResultVC(with searchParameters: SearchParameters) {
+        guard let searchResultVC = storyboard?.instantiateViewController(withIdentifier: "SearchResultViewController") as? SearchResultViewController else {
+            fatalError("尚未正確設定 SearchResultViewController")
+        }
+        
+        searchResultVC.searchParameters = searchParameters
+        navigationController?.pushViewController(searchResultVC, animated: true)
     }
     
 }
