@@ -76,7 +76,7 @@ class SearchResultViewModel {
         performSearch
             .withLatestFrom(Observable.combineLatest(currentPage, photos) { ($0, $1) }) { (photos, currentPageAndPhotos) -> [Photo] in
                 let (currentPage, currentPhotos) = currentPageAndPhotos
-                return currentPage == 1 ? photos.photo : currentPhotos + photos.photo
+                return currentPage == 1 ? photos.photo : currentPhotos + photos.photo.filter { currentPhotos.contains($0) == false }
             }
             .bind(to: photos)
             .disposed(by: bag)

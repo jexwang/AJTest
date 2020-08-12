@@ -8,6 +8,7 @@
 
 import Foundation
 import RxDataSources
+import RealmSwift
 
 struct Photos: Codable {
     let page: Int
@@ -17,19 +18,29 @@ struct Photos: Codable {
     let photo: [Photo]
 }
 
-struct Photo: Codable, IdentifiableType, Equatable {
+class Photo: Object, Codable, IdentifiableType {
+    
     typealias Identity = String
     var identity: String {
         return id
     }
     
-    let id: String
-    let owner: String
-    let secret: String
-    let server: String
-    let farm: Int
-    let title: String
-    let ispublic: Int
-    let isfriend: Int
-    let isfamily: Int
+    @objc dynamic var id: String
+    @objc dynamic var owner: String     
+    @objc dynamic var secret: String
+    @objc dynamic var server: String
+    @objc dynamic var farm: Int
+    @objc dynamic var title: String
+    @objc dynamic var ispublic: Int
+    @objc dynamic var isfriend: Int
+    @objc dynamic var isfamily: Int
+    
+    override static func primaryKey() -> String? {
+        return "id"
+    }
+    
+    static func == (lhs: Photo, rhs: Photo) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
 }
