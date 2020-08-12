@@ -69,10 +69,10 @@ class PhotoCollectionViewCell: UICollectionViewCell {
         Observable.collection(from: realm.objects(Photo.self))
             .withLatestFrom(self.photo) { ($0, $1) }
             .map { (photos, currentPhoto) in
-                return photos.contains { $0 == currentPhoto }
+                return currentPhoto.isInvalidated ? false : photos.contains { $0 == currentPhoto }
             }
             .bind(to: isFavorite)
-            .dispose()
+            .disposed(by: bag)
     }
     
     
